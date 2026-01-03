@@ -108,7 +108,8 @@ struct BudgetView: View {
                         }
                         .scaleEffect(buttonScale)
                     }
-                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .buttonStyle(.borderless)
                 }
             }
             .alert("确认清空", isPresented: $showClearConfirmation) {
