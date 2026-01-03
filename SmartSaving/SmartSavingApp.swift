@@ -1,17 +1,15 @@
-//
-//  SmartSavingApp.swift
-//  SmartSaving
-//
-//  Created by 刘文辉 on 2025/11/25.
-//
-
 import SwiftUI
+import Combine
+import SmartSavingShared
 
 @main
 struct SmartSavingApp: App {
+    @StateObject private var store = BudgetStore.load()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(store)
         }
     }
 }

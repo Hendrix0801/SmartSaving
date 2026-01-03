@@ -6,19 +6,25 @@
 //
 
 import SwiftUI
+import SmartSavingShared
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+        TabView {
+            BudgetView()
+                .tabItem { Label("预算", systemImage: "chart.pie.fill") }
 
-#Preview {
-    ContentView()
+            TransactionsView()
+                .tabItem { Label("记账", systemImage: "minus.circle.fill") }
+            
+            ExpensesListView()
+                .tabItem { Label("支出", systemImage: "arrow.down.circle.fill") }
+            
+            IncomeView()
+                .tabItem { Label("收入", systemImage: "arrow.up.circle.fill") }
+
+            StatsView()
+                .tabItem { Label("统计", systemImage: "list.bullet") }
+        }
+    }
 }
