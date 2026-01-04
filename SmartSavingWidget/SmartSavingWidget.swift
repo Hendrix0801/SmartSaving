@@ -7,15 +7,8 @@
 
 import WidgetKit
 import SwiftUI
-import Combine
 import Foundation
 import SmartSavingShared
-
-final class BudgetStoreShared {
-    static let shared: BudgetStore = {
-        return BudgetStore.load()
-    }()
-}
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> BudgetEntry {
@@ -31,7 +24,7 @@ struct Provider: TimelineProvider {
         var entries: [BudgetEntry] = []
         let currentDate = Date()
         
-        let store = BudgetStoreShared.shared
+        let store = BudgetStore.load()
         let daily = store.dailyAvailable
         let spent = store.totalSpentThisMonth
         let remaining = store.daysRemainingInMonth

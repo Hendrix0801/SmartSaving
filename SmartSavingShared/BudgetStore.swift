@@ -8,6 +8,9 @@
 import Foundation
 import SwiftUI
 import Combine
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 public final class BudgetStore: ObservableObject, Codable {
     @Published public var monthlySalary: Double = 0
@@ -107,6 +110,9 @@ public final class BudgetStore: ObservableObject, Codable {
     // MARK: - Persistence
     public func save() {
         PersistenceShared.saveEncodable(self, forKey: PersistenceShared.storeKey)
+#if canImport(WidgetKit)
+        WidgetCenter.shared.reloadTimelines(ofKind: "SmartSavingWidget")
+#endif
     }
     
     // 异步保存方法（供外部调用）
