@@ -46,6 +46,41 @@ public final class BudgetStore: ObservableObject, Codable {
     public var incomeTransactions: [Transaction] {
         transactions.filter { $0.type == .income }
     }
+    
+    // 获取指定月份的支出总额
+    public func totalSpent(forMonth date: Date) -> Double {
+        let calendar = Calendar.current
+        return transactions.filter {
+            $0.type == .expense && calendar.isDate($0.date, equalTo: date, toGranularity: .month)
+        }
+        .reduce(0) { $0 + $1.amount }
+    }
+    
+    // 获取指定月份的收入总额
+    public func totalIncome(forMonth date: Date) -> Double {
+        let calendar = Calendar.current
+        return transactions.filter {
+            $0.type == .income && calendar.isDate($0.date, equalTo: date, toGranularity: .month)
+        }
+        .reduce(0) { $0 + $1.amount }
+    }
+    
+    // 获取指定月份的所有交易
+    public func transactions(forMonth date: Date) -> [Transaction] {
+        let calendar = Calendar.current
+        return transactions.filter {
+            calendar.isDate($0.date, equalTo: date, toGranularity: .month)
+        }
+    }
+    
+    // 获取所有有交易记录的月份（按时间倒序）
+    public var availableMonths: [Date] {
+        let calendar = Calendar.current
+        let monthSet = Set(transactions.map { transaction in
+            calendar.date(from: calendar.dateComponents([.year, .month], from: transaction.date))!
+        })
+        return Array(monthSet).sorted(by: >)
+    }
 
     public var daysRemainingInMonth: Int {
         let calendar = Calendar.current

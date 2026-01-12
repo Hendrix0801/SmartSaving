@@ -13,11 +13,36 @@ import com.smartsaving.android.ui.theme.ExpenseRed
 import com.smartsaving.android.ui.theme.IncomeGreen
 import com.smartsaving.android.util.DateFormatter
 import com.smartsaving.android.viewmodel.BudgetViewModel
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsView(viewModel: BudgetViewModel) {
     val store by viewModel.store.collectAsState()
+    var selectedMonth by remember { mutableStateOf(System.currentTimeMillis()) }
+    
+    val isCurrentMonth = remember(selectedMonth) {
+        val calendar = Calendar.getInstance()
+        val selectedCalendar = Calendar.getInstance().apply { timeInMillis = selectedMonth }
+        calendar.get(Calendar.MONTH) == selectedCalendar.get(Calendar.MONTH) &&
+        calendar.get(Calendar.YEAR) == selectedCalendar.get(Calendar.YEAR)
+    }
+    
+    val monthTitle = remember(selectedMonth) {
+        DateFormatter.formatMonthYear(selectedMonth)
+    }
+    
+    val monthTransactions = remember(store, selectedMonth) {
+        store?.transactions(forMonth = selectedMonth) ?: emptyList()
+    }
+    
+    val monthIncome = remember(store, selectedMonth) {
+        store?.totalIncome(forMonth = selectedMonth) ?: 0.0
+    }
+    
+    val monthExpense = remember(store, selectedMonth) {
+        store?.totalSpent(forMonth = selectedMonth) ?: 0.0
+    }
 
     Scaffold(
         topBar = {
@@ -31,6 +56,7 @@ fun StatsView(viewModel: BudgetViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 月份选择器
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -40,35 +66,121 @@ fun StatsView(viewModel: BudgetViewModel) {
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "本月概览",
+                            text = "选择月份",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        
+                        val availableMonths = store?.availableMonths ?: emptyList()
+                        
+                        if (availableMonths.isNotEmpty()) {
+                            var expanded by remember { mutableStateOf(false) }
+                            
+                            // 确保初始选中当前月份或第一个可用月份
+                            LaunchedEffect(availableMonths) {
+                                val calendar = Calendar.getInstance()
+                                val currentMonth = calendar.apply {
+                                    set(Calendar.DAY_OF_MONTH, 1)
+                                    set(Calendar.HOUR_OF_DAY, 0)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }.timeInMillis
+                                
+                                if (!availableMonths.contains(selectedMonth)) {
+                                    selectedMonth = availableMonths.firstOrNull() ?: currentMonth
+                                }
+                            }
+                            
+                            ExposedDropdownMenuBox(
+                                expanded = expanded,
+                                onExpandedChange = { expanded = !expanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = monthTitle,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor()
+                                )
+                                
+                                ExposedDropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    availableMonths.forEach { month ->
+                                        DropdownMenuItem(
+                                            text = { Text(DateFormatter.formatMonthYear(month)) },
+                                            onClick = {
+                                                selectedMonth = month
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "暂无数据",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 月份概览
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (isCurrentMonth) "本月概览" else "$monthTitle 概览",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
                         store?.let { budgetStore ->
-                            StatRow("月薪", String.format("¥ %.2f", budgetStore.monthlySalary), androidx.compose.ui.graphics.Color(0xFFFF9800))
+                            if (isCurrentMonth) {
+                                StatRow("月薪", String.format("¥ %.2f", budgetStore.monthlySalary), androidx.compose.ui.graphics.Color(0xFFFF9800))
+                                Spacer(modifier = Modifier.height(12.dp))
+                                StatRow("已设定存钱目标", String.format("¥ %.2f", budgetStore.savingTarget), androidx.compose.ui.graphics.Color(0xFF2196F3))
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                            
+                            StatRow(
+                                if (isCurrentMonth) "本月额外收入" else "收入",
+                                String.format("¥ %.2f", monthIncome),
+                                IncomeGreen
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
-                            StatRow("本月额外收入", String.format("¥ %.2f", budgetStore.totalIncomeThisMonth), IncomeGreen)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            StatRow("已设定存钱目标", String.format("¥ %.2f", budgetStore.savingTarget), androidx.compose.ui.graphics.Color(0xFF2196F3))
-                            Spacer(modifier = Modifier.height(12.dp))
-                            StatRow("本月已花", String.format("¥ %.2f", budgetStore.totalSpentThisMonth), ExpenseRed)
+                            StatRow(
+                                if (isCurrentMonth) "本月已花" else "支出",
+                                String.format("¥ %.2f", monthExpense),
+                                ExpenseRed
+                            )
                         }
                     }
                 }
             }
 
+            // 动账列表
             item {
                 Text(
-                    text = "最近动帐",
+                    text = if (isCurrentMonth) "最近动帐" else "$monthTitle 动帐",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
 
-            val recentTransactions = store?.transactions?.take(20) ?: emptyList()
-
-            if (recentTransactions.isEmpty()) {
+            if (monthTransactions.isEmpty()) {
                 item {
                     Text(
                         text = "暂无动帐记录",
@@ -78,7 +190,7 @@ fun StatsView(viewModel: BudgetViewModel) {
                     )
                 }
             } else {
-                items(recentTransactions, key = { it.id }) { transaction ->
+                items(monthTransactions, key = { it.id }) { transaction ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

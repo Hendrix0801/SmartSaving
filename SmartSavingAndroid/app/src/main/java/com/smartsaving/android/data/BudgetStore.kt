@@ -62,6 +62,77 @@ class BudgetStore(
     // 所有收入交易
     val incomeTransactions: List<Transaction>
         get() = transactions.filter { it.type == TransactionType.INCOME }
+    
+    // 获取指定月份的支出总额
+    fun totalSpent(forMonth: Long): Double {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = forMonth
+        }
+        val targetMonth = calendar.get(Calendar.MONTH)
+        val targetYear = calendar.get(Calendar.YEAR)
+        
+        return transactions.filter { transaction ->
+            val transCalendar = Calendar.getInstance().apply {
+                timeInMillis = transaction.date
+            }
+            transaction.type == TransactionType.EXPENSE &&
+            transCalendar.get(Calendar.MONTH) == targetMonth &&
+            transCalendar.get(Calendar.YEAR) == targetYear
+        }.sumOf { it.amount }
+    }
+    
+    // 获取指定月份的收入总额
+    fun totalIncome(forMonth: Long): Double {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = forMonth
+        }
+        val targetMonth = calendar.get(Calendar.MONTH)
+        val targetYear = calendar.get(Calendar.YEAR)
+        
+        return transactions.filter { transaction ->
+            val transCalendar = Calendar.getInstance().apply {
+                timeInMillis = transaction.date
+            }
+            transaction.type == TransactionType.INCOME &&
+            transCalendar.get(Calendar.MONTH) == targetMonth &&
+            transCalendar.get(Calendar.YEAR) == targetYear
+        }.sumOf { it.amount }
+    }
+    
+    // 获取指定月份的所有交易
+    fun transactions(forMonth: Long): List<Transaction> {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = forMonth
+        }
+        val targetMonth = calendar.get(Calendar.MONTH)
+        val targetYear = calendar.get(Calendar.YEAR)
+        
+        return transactions.filter { transaction ->
+            val transCalendar = Calendar.getInstance().apply {
+                timeInMillis = transaction.date
+            }
+            transCalendar.get(Calendar.MONTH) == targetMonth &&
+            transCalendar.get(Calendar.YEAR) == targetYear
+        }
+    }
+    
+    // 获取所有有交易记录的月份（按时间倒序）
+    val availableMonths: List<Long>
+        get() {
+            val monthSet = mutableSetOf<Long>()
+            transactions.forEach { transaction ->
+                val calendar = Calendar.getInstance().apply {
+                    timeInMillis = transaction.date
+                }
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                monthSet.add(calendar.timeInMillis)
+            }
+            return monthSet.sortedDescending()
+        }
 
     val daysRemainingInMonth: Int
         get() {
